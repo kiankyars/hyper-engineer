@@ -1,0 +1,123 @@
+export interface EyeLandmarks {
+  leftEye: { x: number; y: number; z: number };
+  rightEye: { x: number; y: number; z: number };
+  leftIris: { x: number; y: number; z: number };
+  rightIris: { x: number; y: number; z: number };
+  faceCenter: { x: number; y: number; z: number };
+}
+
+export interface GazeState {
+  isLookingAtCamera: boolean;
+  confidence: number;
+}
+
+export class EyeTracker {
+  private sensitivity: number;
+  private smoothingFactor: number;
+  private previousGazeState: GazeState | null = null;
+
+  // MediaPipe Face Mesh landmark indices
+  private readonly LEFT_EYE_INNER = 33;
+  private readonly LEFT_EYE_OUTER = 133;
+  private readonly RIGHT_EYE_INNER = 362;
+  private readonly RIGHT_EYE_OUTER = 263;
+  private readonly LEFT_IRIS = 468;
+  private readonly RIGHT_IRIS = 473;
+  private readonly NOSE_TIP = 4;
+
+  constructor(sensitivity: number = 0.15, smoothingFactor: number = 0.7) {
+    this.sensitivity = sensitivity;
+    this.smoothingFactor = smoothingFactor;
+  }
+
+  setSensitivity(sensitivity: number): void {
+    this.sensitivity = Math.max(0.05, Math.min(0.5, sensitivity));
+  }
+
+  detectGaze(landmarks: any[]): GazeState | null {
+    if (!landmarks || landmarks.length === 0) {
+      return null;
+    }
+
+    try {
+      const leftEyeInner = landmarks[this.LEFT_EYE_INNER];
+      const leftEyeOuter = landmarks[this.LEFT_EYE_OUTER];
+      const rightEyeInner = landmarks[this.RIGHT_EYE_INNER];
+      const rightEyeOuter = landmarks[this.RIGHT_EYE_OUTER];
+      const leftIris = landmarks[this.LEFT_IRIS];
+      const rightIris = landmarks[this.RIGHT_IRIS];
+      const noseTip = landmarks[this.NOSE_TIP];
+
+      if (!leftEyeInner || !leftEyeOuter || !rightEyeInner || !rightEyeOuter || 
+          !leftIris || !rightIris || !noseTip) {
+        return null;
+      }
+
+      // Calculate eye centers
+      const leftEyeCenter = {
+        x: (leftEyeInner.x + leftEyeOuter.x) / 2,
+        y: (leftEyeInner.y + leftEyeOuter.y) / 2,
+        z: (leftEyeInner.z + leftEyeOuter.z) / 2
+      };
+
+      const rightEyeCenter = {
+        x: (rightEyeInner.x + rightEyeOuter.x) / 2,
+        y: (rightEyeInner.y + rightEyeOuter.y) / 2,
+        z: (rightEyeInner.z + rightEyeOuter.z) / 2
+      };
+
+      // Calculate iris offset from eye center (gaze direction indicator)
+      const leftIrisOffset = {
+        x: leftIris.x - leftEyeCenter.x,
+        y: leftIris.y - leftEyeCenter.y
+      };
+
+      const rightIrisOffset = {
+        x: rightIris.x - rightEyeCenter.x,
+        y: rightIris.y - rightEyeCenter.y
+      };
+
+      // Average the offsets for both eyes
+      const avgIrisOffset = {
+        x: (leftIrisOffset.x + rightIrisOffset.x) / 2,
+        y: (leftIrisOffset.y + rightIrisOffset.y) / 2
+      };
+
+      // Calculate distance from center (0,0 means looking straight at camera)
+      const gazeDeviation = Math.sqrt(
+        avgIrisOffset.x * avgIrisOffset.x + 
+        avgIrisOffset.y * avgIrisOffset.y
+      );
+
+      // Determine if looking at camera based on sensitivity threshold
+      const isLookingAtCamera = gazeDeviation < this.sensitivity;
+
+      // Calculate confidence based on how close to center
+      const confidence = Math.max(0, Math.min(1, 1 - (gazeDeviation / this.sensitivity)));
+
+      // Apply smoothing to reduce jitter
+      let finalState: GazeState;
+      if (this.previousGazeState) {
+        finalState = {
+          isLookingAtCamera: this.previousGazeState.isLookingAtCamera * this.smoothingFactor + 
+                           isLookingAtCamera * (1 - this.smoothingFactor) > 0.5,
+          confidence: this.previousGazeState.confidence * this.smoothingFactor + 
+                     confidence * (1 - this.smoothingFactor)
+        };
+      } else {
+        finalState = { isLookingAtCamera, confidence };
+      }
+
+      this.previousGazeState = finalState;
+      return finalState;
+    } catch (error) {
+      console.error('Error detecting gaze:', error);
+      return null;
+    }
+  }
+
+  reset(): void {
+    this.previousGazeState = null;
+  }
+}
+
