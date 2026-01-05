@@ -183,6 +183,13 @@ header h1 {
   color: #475569;
 }
 
+.setting-hint {
+  font-size: 0.85em;
+  font-weight: 400;
+  color: #64748b;
+  font-style: italic;
+}
+
 .setting-item input[type="range"] {
   flex: 1;
   height: 6px;

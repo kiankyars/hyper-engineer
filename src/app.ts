@@ -37,7 +37,7 @@ class App {
     this.notificationPermissionStatus = document.getElementById('notificationPermission') as HTMLElement;
 
     this.cameraManager = new CameraManager(this.videoElement);
-    this.eyeTracker = new EyeTracker();
+    this.eyeTracker = new EyeTracker(0.15, 0.7, true); // Enable debug mode
     this.notificationManager = new NotificationManager();
 
     this.setupEventListeners();
@@ -122,14 +122,26 @@ class App {
         );
       }
 
+      // Set tracking flag before starting camera so callbacks work
+      this.isTracking = true;
+
       // Start camera
       await this.cameraManager.start({
         onResults: (results) => {
-          if (this.isTracking && results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
+          if (!this.isTracking) return;
+
+          console.log('[App] MediaPipe results:', {
+            hasLandmarks: !!results.multiFaceLandmarks,
+            landmarkCount: results.multiFaceLandmarks?.length || 0
+          });
+
+          if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
             const landmarks = results.multiFaceLandmarks[0];
+            console.log('[App] Processing landmarks, count:', landmarks.length);
             const gazeState = this.eyeTracker.detectGaze(landmarks);
             this.updateStatus(gazeState);
-          } else if (this.isTracking) {
+          } else {
+            console.log('[App] No face detected');
             this.updateStatus(null);
           }
         },
@@ -138,7 +150,6 @@ class App {
       });
 
       this.updateCameraPermissionStatus(true);
-      this.isTracking = true;
       this.startBtn.disabled = true;
       this.stopBtn.disabled = false;
       this.statusIcon.className = 'status-icon initializing';
