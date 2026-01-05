@@ -40,13 +40,13 @@ export class EyeTracker {
     }
 
     try {
-      const leftEyeInner = landmarks[this.LEFT_EYE_INNER];
-      const leftEyeOuter = landmarks[this.LEFT_EYE_OUTER];
-      const rightEyeInner = landmarks[this.RIGHT_EYE_INNER];
-      const rightEyeOuter = landmarks[this.RIGHT_EYE_OUTER];
-      const leftIris = landmarks[this.LEFT_IRIS];
-      const rightIris = landmarks[this.RIGHT_IRIS];
-      const noseTip = landmarks[this.NOSE_TIP];
+      const leftEyeInner = landmarks[this.LEFT_EYE_INNER] as { x: number; y: number; z: number };
+      const leftEyeOuter = landmarks[this.LEFT_EYE_OUTER] as { x: number; y: number; z: number };
+      const rightEyeInner = landmarks[this.RIGHT_EYE_INNER] as { x: number; y: number; z: number };
+      const rightEyeOuter = landmarks[this.RIGHT_EYE_OUTER] as { x: number; y: number; z: number };
+      const leftIris = landmarks[this.LEFT_IRIS] as { x: number; y: number; z: number };
+      const rightIris = landmarks[this.RIGHT_IRIS] as { x: number; y: number; z: number };
+      const noseTip = landmarks[this.NOSE_TIP] as { x: number; y: number; z: number };
 
       if (!leftEyeInner || !leftEyeOuter || !rightEyeInner || !rightEyeOuter || 
           !leftIris || !rightIris || !noseTip) {
@@ -98,9 +98,10 @@ export class EyeTracker {
       // Apply smoothing to reduce jitter
       let finalState: GazeState;
       if (this.previousGazeState) {
+        const smoothedLooking = (this.previousGazeState.isLookingAtCamera ? 1 : 0) * this.smoothingFactor + 
+                               (isLookingAtCamera ? 1 : 0) * (1 - this.smoothingFactor);
         finalState = {
-          isLookingAtCamera: this.previousGazeState.isLookingAtCamera * this.smoothingFactor + 
-                           isLookingAtCamera * (1 - this.smoothingFactor) > 0.5,
+          isLookingAtCamera: smoothedLooking > 0.5,
           confidence: this.previousGazeState.confidence * this.smoothingFactor + 
                      confidence * (1 - this.smoothingFactor)
         };

@@ -26,10 +26,6 @@ export class CameraManager {
       minDetectionConfidence: 0.5,
       minTrackingConfidence: 0.5
     });
-
-    this.faceMesh.onResults((results) => {
-      // Results will be handled by the callback
-    });
   }
 
   async start(config: CameraConfig): Promise<void> {
