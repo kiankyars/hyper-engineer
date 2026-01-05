@@ -16,8 +16,6 @@ class App {
   private stopBtn: HTMLButtonElement;
   private statusIcon: HTMLElement;
   private statusText: HTMLElement;
-  private sensitivitySlider: HTMLInputElement;
-  private sensitivityValue: HTMLElement;
   private notificationDelaySlider: HTMLInputElement;
   private notificationDelayValue: HTMLElement;
   private cameraPermissionStatus: HTMLElement;
@@ -29,15 +27,13 @@ class App {
     this.stopBtn = document.getElementById('stopBtn') as HTMLButtonElement;
     this.statusIcon = document.getElementById('statusIcon') as HTMLElement;
     this.statusText = document.getElementById('statusText') as HTMLElement;
-    this.sensitivitySlider = document.getElementById('sensitivity') as HTMLInputElement;
-    this.sensitivityValue = document.getElementById('sensitivityValue') as HTMLElement;
     this.notificationDelaySlider = document.getElementById('notificationDelay') as HTMLInputElement;
     this.notificationDelayValue = document.getElementById('notificationDelayValue') as HTMLElement;
     this.cameraPermissionStatus = document.getElementById('cameraPermission') as HTMLElement;
     this.notificationPermissionStatus = document.getElementById('notificationPermission') as HTMLElement;
 
     this.cameraManager = new CameraManager(this.videoElement);
-    this.eyeTracker = new EyeTracker(0.15, 0.7, true); // Enable debug mode
+    this.eyeTracker = new EyeTracker(0.85, true); // Higher smoothing, debug mode enabled
     this.notificationManager = new NotificationManager();
 
     this.setupEventListeners();
@@ -47,12 +43,6 @@ class App {
   private setupEventListeners(): void {
     this.startBtn.addEventListener('click', () => this.start());
     this.stopBtn.addEventListener('click', () => this.stop());
-
-    this.sensitivitySlider.addEventListener('input', (e) => {
-      const value = parseFloat((e.target as HTMLInputElement).value);
-      this.sensitivityValue.textContent = value.toFixed(2);
-      this.eyeTracker.setSensitivity(value);
-    });
 
     this.notificationDelaySlider.addEventListener('input', (e) => {
       const value = parseInt((e.target as HTMLInputElement).value);
@@ -130,18 +120,11 @@ class App {
         onResults: (results) => {
           if (!this.isTracking) return;
 
-          console.log('[App] MediaPipe results:', {
-            hasLandmarks: !!results.multiFaceLandmarks,
-            landmarkCount: results.multiFaceLandmarks?.length || 0
-          });
-
           if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
             const landmarks = results.multiFaceLandmarks[0];
-            console.log('[App] Processing landmarks, count:', landmarks.length);
             const gazeState = this.eyeTracker.detectGaze(landmarks);
             this.updateStatus(gazeState);
           } else {
-            console.log('[App] No face detected');
             this.updateStatus(null);
           }
         },

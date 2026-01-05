@@ -1,21 +1,23 @@
-export interface EyeLandmarks {
-  leftEye: { x: number; y: number; z: number };
-  rightEye: { x: number; y: number; z: number };
-  leftIris: { x: number; y: number; z: number };
-  rightIris: { x: number; y: number; z: number };
-  faceCenter: { x: number; y: number; z: number };
-}
-
 export interface GazeState {
   isLookingAtCamera: boolean;
   confidence: number;
 }
 
 export class EyeTracker {
-  private sensitivity: number;
   private smoothingFactor: number;
   private previousGazeState: GazeState | null = null;
   private debugMode: boolean = false;
+  
+  // State tracking for debouncing
+  private consecutiveLookingFrames: number = 0;
+  private consecutiveNotLookingFrames: number = 0;
+  private readonly requiredFramesForChange: number = 5; // Require 5 consecutive frames to change state
+  private currentStableState: boolean | null = null;
+
+  // Blink detection
+  private eyesClosedFrames: number = 0;
+  private readonly blinkThresholdFrames: number = 3; // ~150ms at 30fps
+  private isBlinking: boolean = false;
 
   // MediaPipe Face Mesh landmark indices
   private readonly LEFT_EYE_INNER = 33;
@@ -29,15 +31,15 @@ export class EyeTracker {
   private readonly LEFT_IRIS = 468;
   private readonly RIGHT_IRIS = 473;
   private readonly NOSE_TIP = 4;
+  private readonly FACE_CENTER = 10; // Forehead center
 
-  constructor(sensitivity: number = 0.15, smoothingFactor: number = 0.7, debugMode: boolean = false) {
-    this.sensitivity = sensitivity;
+  // Fixed threshold for gaze detection (no longer configurable)
+  private readonly GAZE_THRESHOLD = 0.08; // Fixed threshold for "looking at camera"
+  private readonly EAR_CLOSED_THRESHOLD = 0.15; // Lower threshold for detecting closed eyes
+
+  constructor(smoothingFactor: number = 0.85, debugMode: boolean = false) {
     this.smoothingFactor = smoothingFactor;
     this.debugMode = debugMode;
-  }
-
-  setSensitivity(sensitivity: number): void {
-    this.sensitivity = Math.max(0.05, Math.min(0.5, sensitivity));
   }
 
   setDebugMode(enabled: boolean): void {
@@ -56,8 +58,6 @@ export class EyeTracker {
       return null;
     }
 
-    this.log(`Processing ${landmarks.length} landmarks`);
-
     try {
       const leftEyeInner = landmarks[this.LEFT_EYE_INNER] as { x: number; y: number; z: number };
       const leftEyeOuter = landmarks[this.LEFT_EYE_OUTER] as { x: number; y: number; z: number };
@@ -70,10 +70,11 @@ export class EyeTracker {
       const leftIris = landmarks[this.LEFT_IRIS] as { x: number; y: number; z: number };
       const rightIris = landmarks[this.RIGHT_IRIS] as { x: number; y: number; z: number };
       const noseTip = landmarks[this.NOSE_TIP] as { x: number; y: number; z: number };
+      const faceCenter = landmarks[this.FACE_CENTER] as { x: number; y: number; z: number };
 
       if (!leftEyeInner || !leftEyeOuter || !rightEyeInner || !rightEyeOuter || 
           !leftEyeTop || !leftEyeBottom || !rightEyeTop || !rightEyeBottom ||
-          !leftIris || !rightIris || !noseTip) {
+          !leftIris || !rightIris || !noseTip || !faceCenter) {
         this.log('Missing required landmarks');
         return null;
       }
@@ -81,19 +82,31 @@ export class EyeTracker {
       // Check if eyes are open by calculating eye aspect ratio (EAR)
       const leftEyeHeight = Math.abs(leftEyeTop.y - leftEyeBottom.y);
       const leftEyeWidth = Math.abs(leftEyeInner.x - leftEyeOuter.x);
-      const leftEAR = leftEyeHeight / leftEyeWidth;
+      const leftEAR = leftEyeWidth > 0 ? leftEyeHeight / leftEyeWidth : 0;
 
       const rightEyeHeight = Math.abs(rightEyeTop.y - rightEyeBottom.y);
       const rightEyeWidth = Math.abs(rightEyeInner.x - rightEyeOuter.x);
-      const rightEAR = rightEyeHeight / rightEyeWidth;
+      const rightEAR = rightEyeWidth > 0 ? rightEyeHeight / rightEyeWidth : 0;
 
       const avgEAR = (leftEAR + rightEAR) / 2;
-      const eyeOpenThreshold = 0.2; // Eyes are considered closed if EAR < 0.2
 
-      this.log(`Eye Aspect Ratio: ${avgEAR.toFixed(3)} (left: ${leftEAR.toFixed(3)}, right: ${rightEAR.toFixed(3)})`);
+      // Detect blinks (sustained eye closure)
+      if (avgEAR < this.EAR_CLOSED_THRESHOLD) {
+        this.eyesClosedFrames++;
+        if (this.eyesClosedFrames >= this.blinkThresholdFrames) {
+          this.isBlinking = true;
+        }
+      } else {
+        this.eyesClosedFrames = 0;
+        this.isBlinking = false;
+      }
 
-      if (avgEAR < eyeOpenThreshold) {
-        this.log('Eyes detected as closed');
+      // If blinking, maintain previous state (don't change during blinks)
+      if (this.isBlinking) {
+        this.log('Blink detected, maintaining previous state');
+        if (this.previousGazeState) {
+          return this.previousGazeState;
+        }
         return { isLookingAtCamera: false, confidence: 0 };
       }
 
@@ -110,7 +123,7 @@ export class EyeTracker {
         z: (rightEyeInner.z + rightEyeOuter.z) / 2
       };
 
-      // Calculate iris offset from eye center (gaze direction indicator)
+      // Method 1: Iris position relative to eye center (gaze direction)
       const leftIrisOffset = {
         x: leftIris.x - leftEyeCenter.x,
         y: leftIris.y - leftEyeCenter.y
@@ -127,48 +140,91 @@ export class EyeTracker {
         y: (leftIrisOffset.y + rightIrisOffset.y) / 2
       };
 
-      // Calculate distance from center (0,0 means looking straight at camera)
+      // Method 2: Face orientation (if face is turned, not looking at camera)
+      const faceAngle = Math.atan2(
+        (rightEyeCenter.x - leftEyeCenter.x),
+        Math.abs(rightEyeCenter.y - leftEyeCenter.y)
+      );
+      const faceTurned = Math.abs(faceAngle) > 0.3; // Face turned significantly
+
+      // Calculate gaze deviation from center (0,0 means looking straight at camera)
       const gazeDeviation = Math.sqrt(
         avgIrisOffset.x * avgIrisOffset.x + 
         avgIrisOffset.y * avgIrisOffset.y
       );
 
-      this.log(`Gaze deviation: ${gazeDeviation.toFixed(4)}, Sensitivity: ${this.sensitivity.toFixed(4)}`);
-
-      // Determine if looking at camera based on sensitivity threshold
-      // Higher sensitivity value = more lenient (allows more deviation)
-      // Lower sensitivity value = more strict (less deviation allowed)
-      const isLookingAtCamera = gazeDeviation < this.sensitivity;
-
-      // Calculate confidence based on how close to center
-      const confidence = Math.max(0, Math.min(1, 1 - (gazeDeviation / this.sensitivity)));
-
-      this.log(`Looking at camera: ${isLookingAtCamera}, Confidence: ${confidence.toFixed(3)}`);
-
-      // Apply smoothing to reduce jitter
-      let finalState: GazeState;
-      if (this.previousGazeState) {
-        const smoothedLooking = (this.previousGazeState.isLookingAtCamera ? 1 : 0) * this.smoothingFactor + 
-                               (isLookingAtCamera ? 1 : 0) * (1 - this.smoothingFactor);
-        finalState = {
-          isLookingAtCamera: smoothedLooking > 0.5,
-          confidence: this.previousGazeState.confidence * this.smoothingFactor + 
-                     confidence * (1 - this.smoothingFactor)
-        };
-      } else {
-        finalState = { isLookingAtCamera, confidence };
+      // Combine multiple signals
+      // If face is turned significantly, definitely not looking at camera
+      if (faceTurned) {
+        this.log('Face turned, not looking at camera');
+        const isLooking = false;
+        return this.updateStateWithDebouncing(isLooking, 0);
       }
 
-      this.previousGazeState = finalState;
-      return finalState;
+      // Primary detection: iris position relative to eye center
+      const isLookingAtCamera = gazeDeviation < this.GAZE_THRESHOLD;
+
+      // Calculate confidence based on how close to center
+      const confidence = Math.max(0, Math.min(1, 1 - (gazeDeviation / this.GAZE_THRESHOLD)));
+
+      this.log(`Gaze deviation: ${gazeDeviation.toFixed(4)}, Looking: ${isLookingAtCamera}, Confidence: ${confidence.toFixed(3)}`);
+
+      return this.updateStateWithDebouncing(isLookingAtCamera, confidence);
     } catch (error) {
       console.error('Error detecting gaze:', error);
       return null;
     }
   }
 
+  private updateStateWithDebouncing(isLooking: boolean, confidence: number): GazeState {
+    // Debouncing: require consecutive frames before changing state
+    if (isLooking) {
+      this.consecutiveLookingFrames++;
+      this.consecutiveNotLookingFrames = 0;
+    } else {
+      this.consecutiveNotLookingFrames++;
+      this.consecutiveLookingFrames = 0;
+    }
+
+    // Only change state if we have enough consecutive frames
+    let stableLooking = this.currentStableState;
+    if (this.currentStableState === null) {
+      // Initialize
+      stableLooking = isLooking;
+      this.currentStableState = stableLooking;
+    } else if (isLooking && this.consecutiveLookingFrames >= this.requiredFramesForChange) {
+      stableLooking = true;
+      this.currentStableState = true;
+    } else if (!isLooking && this.consecutiveNotLookingFrames >= this.requiredFramesForChange) {
+      stableLooking = false;
+      this.currentStableState = false;
+    } else {
+      // Not enough consecutive frames, maintain current stable state
+      stableLooking = this.currentStableState;
+    }
+
+    // Apply smoothing to confidence
+    let finalConfidence = confidence;
+    if (this.previousGazeState) {
+      finalConfidence = this.previousGazeState.confidence * this.smoothingFactor + 
+                       confidence * (1 - this.smoothingFactor);
+    }
+
+    const finalState: GazeState = {
+      isLookingAtCamera: stableLooking,
+      confidence: finalConfidence
+    };
+
+    this.previousGazeState = finalState;
+    return finalState;
+  }
+
   reset(): void {
     this.previousGazeState = null;
+    this.currentStableState = null;
+    this.consecutiveLookingFrames = 0;
+    this.consecutiveNotLookingFrames = 0;
+    this.eyesClosedFrames = 0;
+    this.isBlinking = false;
   }
 }
-
