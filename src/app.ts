@@ -55,13 +55,18 @@ class App {
     // Check notification permission status
     if (this.notificationManager.isSupported()) {
       const permission = this.notificationManager.getPermission();
+      console.log('[App] Initial notification permission:', permission);
       this.updateNotificationPermissionStatus(permission);
     } else {
+      console.warn('[App] Notifications not supported in this browser');
       this.updateNotificationPermissionStatus('denied');
     }
 
-    // Register service worker
-    await this.notificationManager.registerServiceWorker();
+    // Register service worker (may not work in Safari)
+    const swRegistered = await this.notificationManager.registerServiceWorker();
+    if (!swRegistered) {
+      console.log('[App] Service worker not registered (may be Safari or unsupported)');
+    }
   }
 
   private updateNotificationPermissionStatus(permission: NotificationPermission): void {
@@ -79,24 +84,40 @@ class App {
     if (!gazeState) {
       this.statusIcon.className = 'status-icon initializing';
       this.statusText.textContent = 'No face detected';
+      this.lookAwayStartTime = null;
       return;
     }
 
     if (gazeState.isLookingAtCamera) {
       this.statusIcon.className = 'status-icon looking';
       this.statusText.textContent = 'Looking at camera';
-      this.lookAwayStartTime = null;
+      // Reset look away timer when looking at camera
+      if (this.lookAwayStartTime !== null) {
+        console.log('[App] Resetting look away timer - now looking at camera');
+        this.lookAwayStartTime = null;
+      }
     } else {
       this.statusIcon.className = 'status-icon not-looking';
       this.statusText.textContent = 'Not looking at camera';
       
       // Track when user started looking away
+      const now = Date.now();
       if (this.lookAwayStartTime === null) {
-        this.lookAwayStartTime = Date.now();
+        this.lookAwayStartTime = now;
+        console.log('[App] Started tracking look away time');
       } else {
-        const lookAwayDuration = Date.now() - this.lookAwayStartTime;
+        const lookAwayDuration = now - this.lookAwayStartTime;
+        console.log(`[App] Looking away for ${lookAwayDuration}ms (threshold: ${this.lookAwayThreshold}ms)`);
+        
         if (lookAwayDuration >= this.lookAwayThreshold) {
-          this.notificationManager.notify();
+          console.log('[App] Look away threshold reached, sending notification');
+          this.notificationManager.notify().then(() => {
+            console.log('[App] Notification sent');
+          }).catch((error) => {
+            console.error('[App] Notification failed:', error);
+          });
+          // Reset timer after notification to avoid spamming
+          this.lookAwayStartTime = now;
         }
       }
     }

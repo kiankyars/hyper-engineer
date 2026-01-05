@@ -45,36 +45,56 @@ export class NotificationManager {
   }
 
   async notify(message?: string): Promise<void> {
+    console.log('[Notifications] notify() called, permission:', this.permission);
+    
     if (this.permission !== 'granted') {
+      console.warn('[Notifications] Permission not granted:', this.permission);
       return;
     }
 
     const now = Date.now();
-    if (now - this.lastNotificationTime < this.notificationDebounceTime) {
+    const timeSinceLastNotification = now - this.lastNotificationTime;
+    
+    if (timeSinceLastNotification < this.notificationDebounceTime) {
+      console.log(`[Notifications] Debouncing: ${timeSinceLastNotification}ms since last notification (need ${this.notificationDebounceTime}ms)`);
       return; // Debounce: don't spam notifications
     }
 
     this.lastNotificationTime = now;
+    console.log('[Notifications] Sending notification...');
 
     try {
-      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-        // Use service worker for background notifications
+      // Safari has limited service worker support, so prefer direct notifications
+      const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+      
+      if (!isSafari && 'serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        // Use service worker for background notifications (non-Safari)
+        console.log('[Notifications] Using service worker');
         navigator.serviceWorker.controller.postMessage({
           type: 'NOTIFY',
           title: this.notificationTitle,
           body: message || this.notificationBody
         });
       } else {
-        // Fallback to regular notification
-        new Notification(this.notificationTitle, {
+        // Direct notification (works better in Safari)
+        console.log('[Notifications] Using direct notification (Safari or no service worker)');
+        const notification = new Notification(this.notificationTitle, {
           body: message || this.notificationBody,
-          icon: '/icon.png', // Optional icon
           tag: 'eyesore-notification', // Tag to replace previous notifications
-          requireInteraction: false // Don't require user interaction
+          requireInteraction: false, // Don't require user interaction
+          silent: false
         });
+        
+        notification.onclick = () => {
+          console.log('[Notifications] Notification clicked');
+          window.focus();
+          notification.close();
+        };
+        
+        console.log('[Notifications] Notification created successfully');
       }
     } catch (error) {
-      console.error('Failed to show notification:', error);
+      console.error('[Notifications] Failed to show notification:', error);
     }
   }
 

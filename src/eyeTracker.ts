@@ -34,7 +34,7 @@ export class EyeTracker {
   private readonly FACE_CENTER = 10; // Forehead center
 
   // Fixed threshold for gaze detection (no longer configurable)
-  private readonly GAZE_THRESHOLD = 0.08; // Fixed threshold for "looking at camera"
+  private readonly GAZE_THRESHOLD = 0.15; // Fixed threshold for "looking at camera" (increased for better detection)
   private readonly EAR_CLOSED_THRESHOLD = 0.15; // Lower threshold for detecting closed eyes
 
   constructor(smoothingFactor: number = 0.85, debugMode: boolean = false) {
@@ -140,12 +140,12 @@ export class EyeTracker {
         y: (leftIrisOffset.y + rightIrisOffset.y) / 2
       };
 
-      // Method 2: Face orientation (if face is turned, not looking at camera)
-      const faceAngle = Math.atan2(
-        (rightEyeCenter.x - leftEyeCenter.x),
-        Math.abs(rightEyeCenter.y - leftEyeCenter.y)
-      );
-      const faceTurned = Math.abs(faceAngle) > 0.3; // Face turned significantly
+      // Method 2: Face orientation (if face is turned significantly, not looking at camera)
+      // Calculate horizontal distance between eyes (should be relatively constant)
+      const eyeDistance = Math.abs(rightEyeCenter.x - leftEyeCenter.x);
+      const eyeVerticalDiff = Math.abs(rightEyeCenter.y - leftEyeCenter.y);
+      // If vertical difference is large relative to horizontal distance, face is tilted/turned
+      const faceTurned = eyeVerticalDiff > eyeDistance * 0.3; // More than 30% tilt indicates turned face
 
       // Calculate gaze deviation from center (0,0 means looking straight at camera)
       const gazeDeviation = Math.sqrt(
@@ -156,13 +156,16 @@ export class EyeTracker {
       // Combine multiple signals
       // If face is turned significantly, definitely not looking at camera
       if (faceTurned) {
-        this.log('Face turned, not looking at camera');
+        this.log(`Face turned (vertical diff: ${eyeVerticalDiff.toFixed(4)}, eye distance: ${eyeDistance.toFixed(4)}), not looking at camera`);
         const isLooking = false;
         return this.updateStateWithDebouncing(isLooking, 0);
       }
 
       // Primary detection: iris position relative to eye center
+      // When looking at camera, iris should be centered in eye (offset close to 0)
       const isLookingAtCamera = gazeDeviation < this.GAZE_THRESHOLD;
+      
+      this.log(`Gaze analysis: deviation=${gazeDeviation.toFixed(4)}, threshold=${this.GAZE_THRESHOLD}, irisOffset=(${avgIrisOffset.x.toFixed(4)}, ${avgIrisOffset.y.toFixed(4)})`);
 
       // Calculate confidence based on how close to center
       const confidence = Math.max(0, Math.min(1, 1 - (gazeDeviation / this.GAZE_THRESHOLD)));
