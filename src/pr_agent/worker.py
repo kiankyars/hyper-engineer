@@ -1,3 +1,4 @@
+import logging
 import os
 import time
 from urllib.parse import urlparse
@@ -31,6 +32,7 @@ def process_job(job: dict) -> None:
     store = JobStore()
     job_id = job["id"]
     payload = job["payload"]
+    logging.info("job.start id=%s payload=%s", job_id, payload)
     store.update_status(job_id, "running")
 
     github = GitHubClient()
@@ -41,6 +43,7 @@ def process_job(job: dict) -> None:
     else:
         issue = find_issue(github, payload.get("search_query"))
         if issue is None:
+            logging.info("job.skip id=%s reason=no-issues", job_id)
             store.set_artifact(job_id, "status_message", "No issues found for query.")
             store.update_status(job_id, "skipped")
             return
@@ -52,6 +55,7 @@ def process_job(job: dict) -> None:
     try:
         fork_owner = ensure_fork(github, repo)
     except RuntimeError as exc:
+        logging.info("job.skip id=%s reason=%s", job_id, str(exc))
         store.set_artifact(job_id, "status_message", str(exc))
         store.update_status(job_id, "skipped")
         return
@@ -93,10 +97,12 @@ def process_job(job: dict) -> None:
         base=base_branch,
     )
 
+    logging.info("job.complete id=%s repo=%s/%s pr_title=%s", job_id, repo.owner, repo.name, pr_title)
     store.update_status(job_id, "completed")
 
 
 def main() -> None:
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     store = JobStore()
     while True:
         job = store.pop(timeout_seconds=5)
