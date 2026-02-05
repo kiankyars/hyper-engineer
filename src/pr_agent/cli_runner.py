@@ -79,10 +79,21 @@ def run_cli_patch(task: str, repo_path: str) -> PatchResult:
             raise RuntimeError("Model response missing PATCH markers.")
 
 
+def _strip_code_fences(text: str) -> str:
+    """Remove markdown code fences that models often include."""
+    import re
+    # Remove opening code fence with optional language specifier
+    text = re.sub(r'^```(?:diff|patch|unified)?\s*\n?', '', text, flags=re.MULTILINE)
+    # Remove closing code fence
+    text = re.sub(r'\n?```\s*$', '', text, flags=re.MULTILINE)
+    return text
+
+
 def _extract_diff(output: str) -> PatchResult:
     start = output.find("PATCH_BEGIN")
     end = output.find("PATCH_END")
     if start == -1 or end == -1 or end <= start:
         raise RuntimeError("Model response missing PATCH markers.")
     diff = output[start + len("PATCH_BEGIN"):end].strip()
+    diff = _strip_code_fences(diff)
     return PatchResult(diff=diff, raw_output=output)
