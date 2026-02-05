@@ -6,17 +6,18 @@ Hosted background worker that finds issues, makes small changes, and opens PRs.
 
 1. Create a GitHub PAT with repo scope.
 2. Export env vars (see `.env.example`).
+   - `.env` is auto-loaded if present.
 3. Install dependencies (uv):
    - `uv sync`
 
 ## Run
 
 - Enqueue a job:
-  - `python -m pr_agent.enqueue_job --repo owner/name --issue 123`
+  - `uv run pr_agent.enqueue_job --repo owner/name --issue 123`
 - Start worker:
-  - `python -m pr_agent.worker`
+  - `uv run pr_agent.worker`
 - Run scheduler:
-  - `python -m pr_agent.orchestrator --interval 3600`
+  - `uv run pr_agent.orchestrator --interval 3600`
 
 ## Notes
 
