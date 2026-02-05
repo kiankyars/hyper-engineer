@@ -17,7 +17,7 @@ Hosted background worker that finds issues, makes small changes, and opens PRs.
 - Start worker:
   - `uv run -m pr_agent.worker`
 - Run scheduler:
-  - `uv run -m pr_agent.orchestrator --interval 3600`
+  - `uv run -m pr_agent.orchestrator --interval 3600 --max-page 5`
 
 ## Notes
 

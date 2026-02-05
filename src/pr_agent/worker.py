@@ -41,7 +41,11 @@ def process_job(job: dict) -> None:
         repo = _parse_repo(payload["repo"])
         issue = github.request("GET", f"/repos/{repo.owner}/{repo.name}/issues/{payload['issue_number']}")
     else:
-        issue = find_issue(github, payload.get("search_query"))
+        issue = find_issue(
+            github,
+            payload.get("search_query"),
+            page=payload.get("search_page", 1),
+        )
         if issue is None:
             logging.info("job.skip id=%s reason=no-issues", job_id)
             store.set_artifact(job_id, "status_message", "No issues found for query.")

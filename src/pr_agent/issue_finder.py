@@ -4,10 +4,14 @@ from pr_agent import config
 from pr_agent.github_client import GitHubClient
 
 
-def find_issue(github: GitHubClient, query: str | None = None) -> dict | None:
+def find_issue(
+    github: GitHubClient,
+    query: str | None = None,
+    page: int = 1,
+) -> dict | None:
     search_query = query or config.DEFAULT_SEARCH_QUERY
     try:
-        data = github.search_issues(search_query, per_page=5)
+        data = github.search_issues(search_query, per_page=5, page=page)
     except requests.HTTPError:
         return None
     items = data.get("items", [])

@@ -61,8 +61,14 @@ class GitHubClient:
             timeout=30,
         )
 
-    def search_issues(self, query: str, per_page: int = 5) -> dict:
-        params = {"q": query, "per_page": per_page, "sort": "updated", "order": "desc"}
+    def search_issues(self, query: str, per_page: int = 5, page: int = 1) -> dict:
+        params = {
+            "q": query,
+            "per_page": per_page,
+            "page": page,
+            "sort": "updated",
+            "order": "desc",
+        }
         url = f"{self.api_url}/search/issues"
         response = requests.get(
             url,

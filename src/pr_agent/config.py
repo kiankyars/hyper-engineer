@@ -31,4 +31,5 @@ DEFAULT_SEARCH_QUERY = _get_env(
     "DEFAULT_SEARCH_QUERY",
     'is:issue is:open label:"good first issue" stars:>=100',
 )
+SEARCH_MAX_PAGE = int(os.getenv("SEARCH_MAX_PAGE", "5"))
 TEST_COMMAND = os.getenv("TEST_COMMAND", "")
