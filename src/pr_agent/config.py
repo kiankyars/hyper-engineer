@@ -13,6 +13,12 @@ def _get_env(name: str, default: str | None = None) -> str:
     return value
 
 
+def _normalize_query(value: str) -> str:
+    if value.count('"') % 2 == 1:
+        return f'{value}"'
+    return value
+
+
 REDIS_URL = _get_env("REDIS_URL", "redis://localhost:6379/0")
 REDIS_QUEUE_NAME = _get_env("REDIS_QUEUE_NAME", "pr-agent-jobs")
 WORKDIR_BASE = os.path.abspath(os.path.expanduser(_get_env("WORKDIR_BASE", "/tmp/pr-agent")))
@@ -31,5 +37,6 @@ DEFAULT_SEARCH_QUERY = _get_env(
     "DEFAULT_SEARCH_QUERY",
     'is:issue is:open label:"good first issue" stars:>=100',
 )
+DEFAULT_SEARCH_QUERY = _normalize_query(DEFAULT_SEARCH_QUERY)
 SEARCH_MAX_PAGE = int(os.getenv("SEARCH_MAX_PAGE", "5"))
 TEST_COMMAND = os.getenv("TEST_COMMAND", "")

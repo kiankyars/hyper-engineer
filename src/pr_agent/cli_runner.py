@@ -17,7 +17,9 @@ class PatchResult:
 def build_prompt(task: str) -> str:
     return (
         "You are a coding agent. Generate a unified diff patch only.\n"
-        "Wrap the patch between PATCH_BEGIN and PATCH_END.\n\n"
+        "Wrap the patch between PATCH_BEGIN and PATCH_END.\n"
+        "Do not include any prose or explanation.\n"
+        "Only reference files that exist in the repo.\n\n"
         f"Task:\n{task}\n"
     )
 
@@ -54,7 +56,7 @@ def run_cli_patch(task: str, repo_path: str) -> PatchResult:
         http_options=types.HttpOptions(timeout=config.GEMINI_TIMEOUT_MS),
     )
     models = _model_sequence()
-    output = ""
+    attempts = 0
     while True:
         for index, model in enumerate(models):
             try:
@@ -72,7 +74,9 @@ def run_cli_patch(task: str, repo_path: str) -> PatchResult:
                         break
                     continue
                 raise
-    raise RuntimeError("Model response missing PATCH markers.")
+        attempts += 1
+        if attempts >= 2:
+            raise RuntimeError("Model response missing PATCH markers.")
 
 
 def _extract_diff(output: str) -> PatchResult:
