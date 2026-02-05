@@ -23,7 +23,7 @@ Hosted background worker that finds issues, makes small changes, and opens PRs.
 
 - The agent uses Gemini Flash-3 via `google-genai`.
 - Set `GEMINI_API_KEY`. Fallback order is:
-  - `GEMINI_MODEL_PRIMARY`
-  - `GEMINI_MODEL_FALLBACK`
-  - `GEMINI_MODEL_FALLBACK_LITE`
+  - `gemini-3-flash-preview`
+  - `gemini-2.5-flash`
+  - `gemini-2.5-flash-lite`
 - If the last model hits rate limits, the worker waits and retries.

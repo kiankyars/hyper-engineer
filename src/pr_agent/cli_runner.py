@@ -31,9 +31,9 @@ def _is_rate_limited(error: Exception) -> bool:
 
 def _model_sequence() -> list[str]:
     return [
-        config.GEMINI_MODEL_PRIMARY,
-        config.GEMINI_MODEL_FALLBACK,
-        config.GEMINI_MODEL_FALLBACK_LITE,
+        "gemini-3-flash-preview",
+        "gemini-2.5-flash",
+        "gemini-2.5-flash-lite",
     ]
 
 
