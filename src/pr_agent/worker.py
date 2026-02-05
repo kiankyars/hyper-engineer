@@ -49,7 +49,12 @@ def process_job(job: dict) -> None:
     repo_data = github.get_repo(repo.owner, repo.name)
     base_branch = repo_data["default_branch"]
 
-    fork_owner = ensure_fork(github, repo)
+    try:
+        fork_owner = ensure_fork(github, repo)
+    except RuntimeError as exc:
+        store.set_artifact(job_id, "status_message", str(exc))
+        store.update_status(job_id, "skipped")
+        return
     fork_repo_data = github.get_repo(fork_owner, repo.name)
     fork_url = _fork_url(fork_repo_data, fork_owner, repo.name)
 

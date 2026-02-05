@@ -86,7 +86,17 @@ class GitHubClient:
         return response.json()
 
     def fork_repo(self, repo: GitHubRepo) -> dict:
-        return self.request("POST", f"/repos/{repo.owner}/{repo.name}/forks")
+        try:
+            return self.request("POST", f"/repos/{repo.owner}/{repo.name}/forks")
+        except requests.HTTPError as exc:
+            response = exc.response
+            status = response.status_code if response is not None else None
+            if status == 403:
+                raise RuntimeError(
+                    "Fork forbidden. The repo may be disabled for forking or "
+                    "your token lacks access."
+                ) from exc
+            raise
 
     def get_repo(self, owner: str, name: str) -> dict:
         return self.request("GET", f"/repos/{owner}/{name}")
