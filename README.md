@@ -6,10 +6,10 @@ Hosted background worker that finds issues, makes small changes, and opens PRs.
 
 1. Create a GitHub App and install it on your target repos.
 2. Export env vars (see `.env.example`).
-3. Install dependencies:
-   - `python -m venv .venv`
+3. Install dependencies (uv):
+   - `uv venv`
    - `source .venv/bin/activate`
-   - `pip install -e .`
+   - `uv pip install -e .`
 
 ## Run
 
