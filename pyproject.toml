@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pr-agent-mvp"
+version = "0.1.0"
+description = "PR agent MVP using CLI runner"
+requires-python = ">=3.11"
+dependencies = [
+  "requests",
+  "redis",
+  "pyjwt",
+  "cryptography",
+  "pexpect",
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
