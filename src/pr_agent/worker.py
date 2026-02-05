@@ -51,6 +51,15 @@ def process_job(job: dict) -> None:
 
     logging.info("job.repo id=%s repo=%s/%s", job_id, repo.owner, repo.name)
 
+    issue_number = issue.get("number")
+    if issue_number is not None:
+        issue_key = f"{repo.owner}/{repo.name}#{issue_number}"
+        if not store.try_claim_issue(issue_key):
+            logging.info("job.skip id=%s reason=duplicate-issue issue=%s", job_id, issue_key)
+            store.set_artifact(job_id, "status_message", "Duplicate issue.")
+            store.update_status(job_id, "skipped")
+            return
+
     repo_data = github.get_repo(repo.owner, repo.name)
     if repo_data.get("archived"):
         logging.info("job.skip id=%s reason=archived-repo", job_id)

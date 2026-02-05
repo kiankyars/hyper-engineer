@@ -55,5 +55,12 @@ class JobStore:
         key = f"{self._job_key(job_id)}:artifact:{name}"
         self.client.set(key, value)
 
+    def try_claim_issue(self, issue_key: str, ttl_seconds: int = 86400) -> bool:
+        key = f"issue:seen:{issue_key}"
+        claimed = self.client.setnx(key, str(int(time.time())))
+        if claimed:
+            self.client.expire(key, ttl_seconds)
+        return bool(claimed)
+
     def _job_key(self, job_id: str) -> str:
         return f"job:{job_id}"
