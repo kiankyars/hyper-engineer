@@ -50,6 +50,11 @@ def process_job(job: dict) -> None:
         repo = _parse_repo(issue["repository_url"].split("/repos/")[-1])
 
     repo_data = github.get_repo(repo.owner, repo.name)
+    if repo_data.get("archived"):
+        logging.info("job.skip id=%s reason=archived-repo", job_id)
+        store.set_artifact(job_id, "status_message", "Archived repo.")
+        store.update_status(job_id, "skipped")
+        return
     base_branch = repo_data["default_branch"]
 
     try:
