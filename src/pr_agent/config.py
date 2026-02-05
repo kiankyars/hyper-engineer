@@ -26,8 +26,5 @@ GEMINI_RATE_LIMIT_WAIT_SECONDS = int(os.getenv("GEMINI_RATE_LIMIT_WAIT_SECONDS",
 GIT_AUTHOR_NAME = _get_env("GIT_AUTHOR_NAME", "pr-agent")
 GIT_AUTHOR_EMAIL = _get_env("GIT_AUTHOR_EMAIL", "pr-agent@example.com")
 
-DEFAULT_SEARCH_QUERY = _get_env(
-    "DEFAULT_SEARCH_QUERY",
-    'is:issue is:open label:"good first issue"',
-)
+DEFAULT_SEARCH_QUERY = _get_env("DEFAULT_SEARCH_QUERY")
 TEST_COMMAND = os.getenv("TEST_COMMAND", "")

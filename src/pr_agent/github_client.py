@@ -73,17 +73,6 @@ class GitHubClient:
         response.raise_for_status()
         return response.json()
 
-    def search_repositories(self, query: str, per_page: int = 100, page: int = 1) -> dict:
-        params = {"q": query, "per_page": per_page, "page": page, "sort": "stars", "order": "desc"}
-        url = f"{self.api_url}/search/repositories"
-        response = requests.get(
-            url,
-            headers=self._installation_headers(),
-            params=params,
-            timeout=30,
-        )
-        response.raise_for_status()
-        return response.json()
 
     def fork_repo(self, repo: GitHubRepo) -> dict:
         try:
