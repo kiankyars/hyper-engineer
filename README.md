@@ -21,9 +21,5 @@ Hosted background worker that finds issues, makes small changes, and opens PRs.
 
 ## Notes
 
-- The default CLI runner is a Claude Code shim:
-  - `CLI_RUNNER_CMD=python`
-  - `CLI_RUNNER_ARGS=-m pr_agent.claude_shim`
-- The shim invokes `CLAUDE_CODE_CMD` and expects a patch between
-  `PATCH_BEGIN` and `PATCH_END`.
-- For debugging, set `CLAUDE_SHIM_DEBUG=1` to stream CLI output to stderr.
+- The agent uses Gemini Flash-3 via `google-genai`.
+- Set `GEMINI_API_KEY` and optionally `GEMINI_MODEL`.

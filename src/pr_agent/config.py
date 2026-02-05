@@ -1,5 +1,4 @@
 import os
-import shlex
 
 from dotenv import load_dotenv
 
@@ -21,9 +20,8 @@ WORKDIR_BASE = _get_env("WORKDIR_BASE", "/tmp/pr-agent")
 GITHUB_API_URL = _get_env("GITHUB_API_URL", "https://api.github.com")
 GITHUB_PAT = os.getenv("GITHUB_PAT", "")
 
-CLI_RUNNER_CMD = _get_env("CLI_RUNNER_CMD", "claude")
-CLI_RUNNER_ARGS = shlex.split(os.getenv("CLI_RUNNER_ARGS", ""))
-CLI_TIMEOUT_SECONDS = int(_get_env("CLI_TIMEOUT_SECONDS", "900"))
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3-flash-preview")
 
 GIT_AUTHOR_NAME = _get_env("GIT_AUTHOR_NAME", "pr-agent")
 GIT_AUTHOR_EMAIL = _get_env("GIT_AUTHOR_EMAIL", "pr-agent@example.com")

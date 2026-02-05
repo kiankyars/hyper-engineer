@@ -1,7 +1,6 @@
-import os
 from dataclasses import dataclass
 
-import pexpect
+from google import genai
 
 from pr_agent import config
 
@@ -21,17 +20,18 @@ def build_prompt(task: str) -> str:
 
 
 def run_cli_patch(task: str, repo_path: str) -> PatchResult:
+    if not config.GEMINI_API_KEY:
+        raise RuntimeError("Missing required env var: GEMINI_API_KEY")
     prompt = build_prompt(task)
-    child = pexpect.spawn(
-        config.CLI_RUNNER_CMD,
-        config.CLI_RUNNER_ARGS,
-        cwd=repo_path,
-        encoding="utf-8",
-        env=os.environ.copy(),
+    client = genai.Client(api_key=config.GEMINI_API_KEY)
+    response = client.models.generate_content(
+        model=config.GEMINI_MODEL,
+        contents=prompt,
     )
-    child.sendline(prompt)
-    child.expect("PATCH_BEGIN", timeout=config.CLI_TIMEOUT_SECONDS)
-    child.expect("PATCH_END", timeout=config.CLI_TIMEOUT_SECONDS)
-    output = child.before
-    diff = output.strip()
-    return PatchResult(diff=diff, raw_output=child.before)
+    output = response.text or ""
+    start = output.find("PATCH_BEGIN")
+    end = output.find("PATCH_END")
+    if start == -1 or end == -1 or end <= start:
+        raise RuntimeError("Model response missing PATCH markers.")
+    diff = output[start + len("PATCH_BEGIN"):end].strip()
+    return PatchResult(diff=diff, raw_output=output)
