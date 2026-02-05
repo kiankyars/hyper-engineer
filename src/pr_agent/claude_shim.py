@@ -32,6 +32,8 @@ def main() -> None:
         encoding="utf-8",
         env=os.environ.copy(),
     )
+    if os.getenv("CLAUDE_SHIM_DEBUG") == "1":
+        child.logfile = sys.stderr
     child.sendline(_build_instruction(prompt))
     child.expect("PATCH_BEGIN", timeout=config.CLI_TIMEOUT_SECONDS)
     child.expect("PATCH_END", timeout=config.CLI_TIMEOUT_SECONDS)
