@@ -49,6 +49,8 @@ def process_job(job: dict) -> None:
             return
         repo = _parse_repo(issue["repository_url"].split("/repos/")[-1])
 
+    logging.info("job.repo id=%s repo=%s/%s", job_id, repo.owner, repo.name)
+
     repo_data = github.get_repo(repo.owner, repo.name)
     if repo_data.get("archived"):
         logging.info("job.skip id=%s reason=archived-repo", job_id)
