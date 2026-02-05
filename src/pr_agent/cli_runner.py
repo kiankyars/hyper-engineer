@@ -3,6 +3,7 @@ from dataclasses import dataclass
 import time
 
 from google import genai
+from google.genai import types
 
 from pr_agent import config
 
@@ -41,7 +42,10 @@ def run_cli_patch(task: str, repo_path: str) -> PatchResult:
     if not config.GEMINI_API_KEY:
         raise RuntimeError("Missing required env var: GEMINI_API_KEY")
     prompt = build_prompt(task)
-    client = genai.Client(api_key=config.GEMINI_API_KEY)
+    client = genai.Client(
+        api_key=config.GEMINI_API_KEY,
+        http_options=types.HttpOptions(timeout=config.GEMINI_TIMEOUT_MS),
+    )
     models = _model_sequence()
     output = ""
     while True:

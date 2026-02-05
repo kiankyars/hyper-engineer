@@ -27,3 +27,4 @@ Hosted background worker that finds issues, makes small changes, and opens PRs.
   - `gemini-2.5-flash`
   - `gemini-2.5-flash-lite`
 - If the last model hits rate limits, the worker waits and retries.
+- `GEMINI_TIMEOUT_MS` controls the Gemini request timeout.
