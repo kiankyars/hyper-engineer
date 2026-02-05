@@ -6,6 +6,7 @@ Hosted background worker that finds issues, makes small changes, and opens PRs.
 
 1. Create a GitHub App and install it on your target repos.
 2. Export env vars (see `.env.example`).
+   - For PAT auth, set `GITHUB_PAT` and leave app vars empty.
 3. Install dependencies (uv):
    - `uv venv`
    - `source .venv/bin/activate`

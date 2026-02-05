@@ -17,19 +17,24 @@ class GitHubRepo:
 class GitHubClient:
     def __init__(self) -> None:
         self.api_url = config.GITHUB_API_URL.rstrip("/")
+        self.pat = config.GITHUB_PAT
         self.app_id = config.GITHUB_APP_ID
         self.installation_id = config.GITHUB_INSTALLATION_ID
         self.private_key_path = config.GITHUB_PRIVATE_KEY_PATH
-        missing = []
-        if not self.app_id:
-            missing.append("GITHUB_APP_ID")
-        if not self.installation_id:
-            missing.append("GITHUB_INSTALLATION_ID")
-        if not self.private_key_path:
-            missing.append("GITHUB_PRIVATE_KEY_PATH")
-        if missing:
-            missing_text = ", ".join(missing)
-            raise RuntimeError(f"Missing required env vars for GitHub App: {missing_text}")
+        if not self.pat:
+            missing = []
+            if not self.app_id:
+                missing.append("GITHUB_APP_ID")
+            if not self.installation_id:
+                missing.append("GITHUB_INSTALLATION_ID")
+            if not self.private_key_path:
+                missing.append("GITHUB_PRIVATE_KEY_PATH")
+            if missing:
+                missing_text = ", ".join(missing)
+                raise RuntimeError(
+                    "Missing required env vars for GitHub App: "
+                    f"{missing_text}. Set GITHUB_PAT to use PAT auth."
+                )
         self._installation_token: str | None = None
         self._installation_token_expires_at: int = 0
 
@@ -54,6 +59,11 @@ class GitHubClient:
         }
 
     def _installation_headers(self) -> dict:
+        if self.pat:
+            return {
+                "Authorization": f"token {self.pat}",
+                "Accept": "application/vnd.github+json",
+            }
         token = self._get_installation_token()
         return {
             "Authorization": f"token {token}",
@@ -78,6 +88,15 @@ class GitHubClient:
         return token
 
     def get_installation_account(self) -> str:
+        if self.pat:
+            response = requests.get(
+                f"{self.api_url}/user",
+                headers=self._installation_headers(),
+                timeout=30,
+            )
+            response.raise_for_status()
+            data = response.json()
+            return data["login"]
         url = f"{self.api_url}/app/installations/{self.installation_id}"
         response = requests.get(url, headers=self._app_headers(), timeout=30)
         response.raise_for_status()
