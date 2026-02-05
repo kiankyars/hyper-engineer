@@ -22,12 +22,19 @@ def build_prompt(task: str) -> str:
     )
 
 
-def _is_rate_limited(error: Exception) -> bool:
+def _should_fallback(error: Exception) -> bool:
     code = getattr(error, "code", None) or getattr(error, "status_code", None)
-    if code == 429:
+    if code in {429, 500, 502, 503, 504}:
         return True
     text = str(error).lower()
-    return "rate limit" in text or "429" in text
+    return (
+        "rate limit" in text
+        or "429" in text
+        or "deadline" in text
+        or "timeout" in text
+        or "temporarily unavailable" in text
+        or "server error" in text
+    )
 
 
 def _model_sequence() -> list[str]:
@@ -59,7 +66,7 @@ def run_cli_patch(task: str, repo_path: str) -> PatchResult:
                 return _extract_diff(output)
             except Exception as exc:
                 is_last = index == len(models) - 1
-                if _is_rate_limited(exc):
+                if _should_fallback(exc):
                     if is_last:
                         time.sleep(config.GEMINI_RATE_LIMIT_WAIT_SECONDS)
                         break
