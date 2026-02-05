@@ -21,7 +21,10 @@ GITHUB_API_URL = _get_env("GITHUB_API_URL", "https://api.github.com")
 GITHUB_PAT = os.getenv("GITHUB_PAT", "")
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3-flash-preview")
+GEMINI_MODEL_PRIMARY = os.getenv("GEMINI_MODEL_PRIMARY", "gemini-3-flash-preview")
+GEMINI_MODEL_FALLBACK = os.getenv("GEMINI_MODEL_FALLBACK", "gemini-2.5-flash")
+GEMINI_MODEL_FALLBACK_LITE = os.getenv("GEMINI_MODEL_FALLBACK_LITE", "gemini-2.5-flash-lite")
+GEMINI_RATE_LIMIT_LEVEL = int(os.getenv("GEMINI_RATE_LIMIT_LEVEL", "0"))
 
 GIT_AUTHOR_NAME = _get_env("GIT_AUTHOR_NAME", "pr-agent")
 GIT_AUTHOR_EMAIL = _get_env("GIT_AUTHOR_EMAIL", "pr-agent@example.com")

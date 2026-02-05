@@ -22,4 +22,8 @@ Hosted background worker that finds issues, makes small changes, and opens PRs.
 ## Notes
 
 - The agent uses Gemini Flash-3 via `google-genai`.
-- Set `GEMINI_API_KEY` and optionally `GEMINI_MODEL`.
+- Set `GEMINI_API_KEY`. Fallback models are controlled by:
+  - `GEMINI_MODEL_PRIMARY`
+  - `GEMINI_MODEL_FALLBACK`
+  - `GEMINI_MODEL_FALLBACK_LITE`
+  - `GEMINI_RATE_LIMIT_LEVEL` (0=primary, 1=fallback, 2=lite)
