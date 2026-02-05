@@ -62,7 +62,7 @@ def process_job(job: dict) -> None:
     fork_repo_data = github.get_repo(fork_owner, repo.name)
     fork_url = _fork_url(fork_repo_data, fork_owner, repo.name)
 
-    workdir = os.path.join(config.WORKDIR_BASE, job_id)
+    workdir = os.path.join(config.WORKDIR_BASE, repo.name)
     context = RepoContext(
         repo=repo,
         fork_owner=fork_owner,
