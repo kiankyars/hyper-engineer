@@ -4,7 +4,8 @@ import time
 from urllib.parse import urlparse
 
 from pr_agent import config
-from pr_agent.change_engine import run_change
+from pr_agent.change_engine import apply_patch, run_tests
+from pr_agent.cli_runner import run_cli_patch
 from pr_agent.github_client import GitHubClient, GitHubRepo
 from pr_agent.issue_finder import find_issue
 from pr_agent.job_store import JobStore
@@ -98,7 +99,7 @@ def process_job(job: dict) -> None:
     task = _derive_task(issue)
     store.set_artifact(job_id, "task", task)
     try:
-        patch_result = run_change(task, context.workdir, payload.get("test_command", config.TEST_COMMAND))
+        patch_result = run_cli_patch(task, context.workdir)
     except RuntimeError as exc:
         logging.info("job.skip id=%s reason=patch-failed error=%s", job_id, str(exc))
         store.set_artifact(job_id, "status_message", str(exc))
@@ -106,6 +107,14 @@ def process_job(job: dict) -> None:
         return
     store.set_artifact(job_id, "diff", patch_result.diff)
     store.set_artifact(job_id, "cli_output", patch_result.raw_output)
+    try:
+        apply_patch(context.workdir, patch_result.diff)
+        run_tests(context.workdir, payload.get("test_command", config.TEST_COMMAND))
+    except RuntimeError as exc:
+        logging.info("job.skip id=%s reason=patch-failed error=%s", job_id, str(exc))
+        store.set_artifact(job_id, "status_message", str(exc))
+        store.update_status(job_id, "skipped")
+        return
 
     commit_message = f"PR agent: {issue.get('title', 'update')}"
     commit_all(context.workdir, commit_message)
