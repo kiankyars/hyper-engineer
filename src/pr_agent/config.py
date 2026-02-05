@@ -15,7 +15,7 @@ def _get_env(name: str, default: str | None = None) -> str:
 
 REDIS_URL = _get_env("REDIS_URL", "redis://localhost:6379/0")
 REDIS_QUEUE_NAME = _get_env("REDIS_QUEUE_NAME", "pr-agent-jobs")
-WORKDIR_BASE = _get_env("WORKDIR_BASE", "/tmp/pr-agent")
+WORKDIR_BASE = os.path.abspath(os.path.expanduser(_get_env("WORKDIR_BASE", "/tmp/pr-agent")))
 
 GITHUB_API_URL = _get_env("GITHUB_API_URL", "https://api.github.com")
 GITHUB_PAT = os.getenv("GITHUB_PAT", "")
