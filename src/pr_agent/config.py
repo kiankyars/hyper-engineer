@@ -14,9 +14,9 @@ REDIS_QUEUE_NAME = _get_env("REDIS_QUEUE_NAME", "pr-agent-jobs")
 WORKDIR_BASE = _get_env("WORKDIR_BASE", "/tmp/pr-agent")
 
 GITHUB_API_URL = _get_env("GITHUB_API_URL", "https://api.github.com")
-GITHUB_APP_ID = _get_env("GITHUB_APP_ID")
-GITHUB_INSTALLATION_ID = _get_env("GITHUB_INSTALLATION_ID")
-GITHUB_PRIVATE_KEY_PATH = _get_env("GITHUB_PRIVATE_KEY_PATH")
+GITHUB_APP_ID = os.getenv("GITHUB_APP_ID", "")
+GITHUB_INSTALLATION_ID = os.getenv("GITHUB_INSTALLATION_ID", "")
+GITHUB_PRIVATE_KEY_PATH = os.getenv("GITHUB_PRIVATE_KEY_PATH", "")
 
 CLI_RUNNER_CMD = _get_env("CLI_RUNNER_CMD", "claude")
 CLI_RUNNER_ARGS = shlex.split(os.getenv("CLI_RUNNER_ARGS", ""))

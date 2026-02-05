@@ -20,6 +20,16 @@ class GitHubClient:
         self.app_id = config.GITHUB_APP_ID
         self.installation_id = config.GITHUB_INSTALLATION_ID
         self.private_key_path = config.GITHUB_PRIVATE_KEY_PATH
+        missing = []
+        if not self.app_id:
+            missing.append("GITHUB_APP_ID")
+        if not self.installation_id:
+            missing.append("GITHUB_INSTALLATION_ID")
+        if not self.private_key_path:
+            missing.append("GITHUB_PRIVATE_KEY_PATH")
+        if missing:
+            missing_text = ", ".join(missing)
+            raise RuntimeError(f"Missing required env vars for GitHub App: {missing_text}")
         self._installation_token: str | None = None
         self._installation_token_expires_at: int = 0
 

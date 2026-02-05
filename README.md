@@ -22,6 +22,8 @@ Hosted background worker that finds issues, makes small changes, and opens PRs.
 
 ## Notes
 
-- The CLI runner expects a Claude Code–like CLI that can emit a patch between
-  `PATCH_BEGIN` and `PATCH_END`. Configure with `CLI_RUNNER_CMD` and
-  `CLI_RUNNER_ARGS`.
+- The default CLI runner is a Claude Code shim:
+  - `CLI_RUNNER_CMD=python`
+  - `CLI_RUNNER_ARGS=-m pr_agent.claude_shim`
+- The shim invokes `CLAUDE_CODE_CMD` and expects a patch between
+  `PATCH_BEGIN` and `PATCH_END`.
