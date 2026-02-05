@@ -13,11 +13,13 @@ Hosted background worker that finds issues, makes small changes, and opens PRs.
 ## Run
 
 - Enqueue a job:
-  - `uv run pr_agent.enqueue_job --repo owner/name --issue 123`
+  - `uv run -m pr_agent.enqueue_job --repo owner/name --issue 123`
+- Enqueue jobs for top repos:
+  - `uv run -m pr_agent.enqueue_job --top-repos 100`
 - Start worker:
-  - `uv run pr_agent.worker`
+  - `uv run -m pr_agent.worker`
 - Run scheduler:
-  - `uv run pr_agent.orchestrator --interval 3600`
+  - `uv run -m pr_agent.orchestrator --interval 3600 --top-repos 100 --search-query ""`
 
 ## Notes
 
