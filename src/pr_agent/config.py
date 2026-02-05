@@ -29,6 +29,6 @@ GIT_AUTHOR_EMAIL = _get_env("GIT_AUTHOR_EMAIL")
 
 DEFAULT_SEARCH_QUERY = _get_env(
     "DEFAULT_SEARCH_QUERY",
-    'is:issue is:open label:"good first issue" stars:>=100 archived:false',
+    'is:issue is:open label:"good first issue" stars:>=100',
 )
 TEST_COMMAND = os.getenv("TEST_COMMAND", "")
