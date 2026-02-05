@@ -5,7 +5,15 @@ from pr_agent.cli_runner import PatchResult, run_cli_patch
 
 
 def apply_patch(repo_path: str, diff: str) -> None:
-    subprocess.run(["git", "apply", "--whitespace=fix", "-"], input=diff, text=True, cwd=repo_path, check=True)
+    result = subprocess.run(
+        ["git", "apply", "--whitespace=fix", "-"],
+        input=diff,
+        text=True,
+        cwd=repo_path,
+        capture_output=True,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(f"git apply failed: {result.stderr.strip()}")
 
 
 def run_tests(repo_path: str, test_command: str) -> None:

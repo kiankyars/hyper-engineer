@@ -97,7 +97,13 @@ def process_job(job: dict) -> None:
 
     task = _derive_task(issue)
     store.set_artifact(job_id, "task", task)
-    patch_result = run_change(task, context.workdir, payload.get("test_command", config.TEST_COMMAND))
+    try:
+        patch_result = run_change(task, context.workdir, payload.get("test_command", config.TEST_COMMAND))
+    except RuntimeError as exc:
+        logging.info("job.skip id=%s reason=patch-failed error=%s", job_id, str(exc))
+        store.set_artifact(job_id, "status_message", str(exc))
+        store.update_status(job_id, "skipped")
+        return
     store.set_artifact(job_id, "diff", patch_result.diff)
     store.set_artifact(job_id, "cli_output", patch_result.raw_output)
 
