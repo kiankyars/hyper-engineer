@@ -27,5 +27,8 @@ GEMINI_TIMEOUT_MS = int(os.getenv("GEMINI_TIMEOUT_MS", "60000"))
 GIT_AUTHOR_NAME = _get_env("GIT_AUTHOR_NAME")
 GIT_AUTHOR_EMAIL = _get_env("GIT_AUTHOR_EMAIL")
 
-DEFAULT_SEARCH_QUERY = _get_env("DEFAULT_SEARCH_QUERY")
+DEFAULT_SEARCH_QUERY = _get_env(
+    "DEFAULT_SEARCH_QUERY",
+    'is:issue is:open label:"good first issue" stars:>=100 archived:false',
+)
 TEST_COMMAND = os.getenv("TEST_COMMAND", "")
