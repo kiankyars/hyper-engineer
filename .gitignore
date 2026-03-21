@@ -5,3 +5,4 @@ dist/
 .env
 .env.local
 __pycache__
+uv.lock
